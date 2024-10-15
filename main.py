@@ -1,0 +1,1 @@
+from src.winequality.config.configuration import main
