@@ -1,1 +1,3 @@
-from src.winequality.config.configuration import main
+from winequality import logger
+
+logger.info("This is out custom log!")
