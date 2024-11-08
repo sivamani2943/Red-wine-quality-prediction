@@ -56,11 +56,8 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
           IMAGE_TAG: latest
         run: |
-          # Build the Docker image
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          # Push the image to ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          # Output the image URI for downstream jobs
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
   Continuous-Deployment:
@@ -88,9 +85,10 @@ jobs:
          
       - name: Stop and remove container if running
         run: |
-          if [ "$(docker ps -q -f name=cnncls)" ]; then
-            docker stop cnncls
-            docker rm -fv cnncls
+          CONTAINER_ID=$(docker ps -aq -f name=cnncls)
+          if [ -n "$CONTAINER_ID" ]; then
+            docker stop $CONTAINER_ID
+            docker rm -fv $CONTAINER_ID
           fi
        
       - name: Run Docker Image to serve users
