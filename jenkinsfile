@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "winequality"
+        IMAGE_TAG = "latest"
+        CONTAINER_NAME = "python-app-container"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                script {
+                    echo "Checking out code from SCM"
+                    checkout scm
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "Building Docker image"
+                    sh """
+                        docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                    """
+                }
+            }
+        }
+
+        stage('Stop Existing Container') {
+            steps {
+                script {
+                    echo "Stopping and removing any existing container"
+                    sh '''
+                        CONTAINER_ID=$(docker ps -aq -f name=$CONTAINER_NAME)
+                        if [ -n "$CONTAINER_ID" ]; then
+                            docker stop $CONTAINER_ID
+                            docker rm -fv $CONTAINER_ID
+                        fi
+                    '''
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    echo "Running Docker container"
+                    sh """
+                        docker run -d -p 8080:8080 --name=$CONTAINER_NAME $IMAGE_NAME:$IMAGE_TAG
+                    """
+                }
+            }
+        }
+
+        stage('Test Container') {
+            steps {
+                script {
+                    echo "Testing if the container is running"
+                    sh """
+                        docker ps | grep $CONTAINER_NAME || exit 1
+                        echo "Container $CONTAINER_NAME is running successfully!"
+                    """
+                }
+            }
+        }
+
+        stage('Clean Up') {
+            steps {
+                script {
+                    echo "Cleaning up unused Docker resources"
+                    sh 'docker system prune -f'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline execution completed!"
+        }
+    }
+}
